@@ -1,0 +1,104 @@
+---
+title: "shiny_dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: row
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(janitor)
+library(stringr)
+library(forcats)
+library(viridis)
+library(plotly)
+library(shiny)
+```
+
+```{r}
+library(rnoaa)
+
+weather = 
+  meteo_pull_monitors(c("USW00094728", "USC00519397", "USS0023B17S"),
+                      var = c("PRCP", "TMIN", "TMAX"), 
+                      date_min = "2016-01-01",
+                      date_max = "2016-12-31") %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY", 
+                      USC00519397 = "Waikiki_HA",
+                      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+
+```
+
+
+Column {.sidebar}
+-----------------------------------------------------------------------
+
+```{r}
+name_choice = weather%>%
+  distinct(name)%>%
+  pull()
+
+selectInput("name_choice", label = h3("Select name"),
+            choices = name_choice, selected = "CentralPark_NY")
+
+renderPrint({ 
+  input$name_choice
+})
+```
+
+```{r}
+
+
+
+
+```
+
+Row
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+
+renderPlotly({
+weather %>% 
+  filter( name == input$name_choice,
+           prcp %in% input$precipitation_range[1]:input$precipitation_range[2]) %>%
+  mutate(hover_text = str_c("Date: ", date,'\nName: ', name)) %>% 
+  plot_ly(x = ~tmin, y = ~tmax, color = ~prcp,
+          text = ~hover_text,
+          type = "scatter", mode = "marker", alpha = 0.5)
+})
+
+```
+
+Row {.tabset .tabset-fade}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+
+})
+```
+
+### Chart C
+
+```{r}
+renderPlotly({
+weather%>%
+  separate(date, into = c("year","month","day"), sep = "-")%>%
+  group_by(month,name)%>%
+  mutate(t = mean(tmax))%>%
+  filter(name == input$name_choice,prcp %in% input$precipitation_range[1]:input$precipitation_range[2])%>%
+  plot_ly(x= ~month, y= ~t, color = ~name, type = "bar")
+})
+
+```
+
