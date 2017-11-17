@@ -53,10 +53,11 @@ renderPrint({
 ```
 
 ```{r}
-
-
-
-
+max_prcp =  weather %>% filter(!is.na(prcp)) %>% distinct(prcp) %>% max()
+min_prcp = weather %>% filter(!is.na(prcp)) %>% distinct(prcp) %>% min()
+# sliderInput widget
+sliderInput("precipitation_range", label = h3("Choose preciptation range"), min = min_prcp, 
+        max = max_prcp, value = c(0, 400))
 ```
 
 Row
@@ -84,7 +85,13 @@ Row {.tabset .tabset-fade}
 ### Chart B
 
 ```{r}
-
+renderPlotly({
+weather %>%
+  filter(name == input$name_choice,prcp %in% input$precipitation_range[1]:input$precipitation_range[2])%>%
+  mutate(month = fct_reorder(name, prcp),diff_in_t = tmax-tmin) %>%
+  plot_ly(x = ~name, y = ~diff_in_t, color = ~name,
+          colors = "Set2",
+          type = "box") 
 })
 ```
 
